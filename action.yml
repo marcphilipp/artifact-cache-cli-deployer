@@ -7,8 +7,12 @@ inputs:
   version:
     description: CLI version to download and publish (e.g. 1.4.0)
     required: true
+  repository:
+    description: Target repository (owner/name) to publish to
+    required: false
+    default: ${{ github.repository }}
   token:
-    description: Token with packages:write scope for the current repository
+    description: Token with packages:write scope for the target repository
     required: false
     default: ${{ github.token }}
 runs:
@@ -18,7 +22,7 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         TOKEN: ${{ inputs.token }}
-        REPOSITORY: ${{ github.repository }}
+        REPOSITORY: ${{ inputs.repository }}
         ACTOR: ${{ github.actor }}
         KEY: ${{ github.action_path }}/develocity-signing-key.asc
       run: |
