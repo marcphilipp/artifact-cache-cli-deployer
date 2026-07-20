@@ -1,0 +1,23 @@
+name: Publish CLI to junit-team/junit-framework
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: CLI version to download and publish (e.g. 1.4.0)
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          repository: junit-team/junit-framework
+          token: ${{ secrets.GH_PACKAGES_TOKEN }}
+          version: ${{ inputs.version }}
