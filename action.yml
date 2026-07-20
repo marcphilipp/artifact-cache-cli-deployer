@@ -1,0 +1,56 @@
+name: Publish Develocity Artifact Cache CLI
+description: >-
+  Downloads the Develocity Artifact Cache CLI jar and its PGP signature,
+  verifies the signature, and publishes it to the GitHub Packages Maven registry of the
+  current repository as com.gradle:develocity-artifact-cache-cli:<version>.
+inputs:
+  version:
+    description: CLI version to download and publish (e.g. 1.4.0)
+    required: true
+  token:
+    description: Token with packages:write scope for the current repository
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        TOKEN: ${{ inputs.token }}
+        REPOSITORY: ${{ github.repository }}
+        ACTOR: ${{ github.actor }}
+        KEY: ${{ github.action_path }}/develocity-signing-key.asc
+      run: |
+        set -euo pipefail
+        base="https://docs.develocity.ai/downloads/develocity-artifact-cache-cli/develocity-artifact-cache-cli-${VERSION}.jar"
+        curl -fsSL -o cli.jar     "$base"
+        curl -fsSL -o cli.jar.asc "$base.asc"
+
+        export GNUPGHOME="$(mktemp -d)"
+        gpg --quiet --import "$KEY"
+        gpg --verify cli.jar.asc cli.jar
+
+        cat > settings.xml <<EOF
+        <settings>
+          <servers>
+            <server>
+              <id>github</id>
+              <username>${ACTOR}</username>
+              <password>${TOKEN}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+
+        mvn -B -s settings.xml deploy:deploy-file \
+          -DrepositoryId=github \
+          -Durl="https://maven.pkg.github.com/${REPOSITORY}" \
+          -DgroupId=com.gradle \
+          -DartifactId=develocity-artifact-cache-cli \
+          -Dversion="${VERSION}" \
+          -Dpackaging=jar \
+          -Dfile=cli.jar \
+          -Dfiles=cli.jar.asc \
+          -Dclassifiers= \
+          -Dtypes=jar.asc
